@@ -14,6 +14,19 @@ sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libadwaita-1-dev wl-clip
 python3 -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Adw', '1'); from gi.repository import Gtk, Adw; print('GTK', Gtk.get_major_version(), '- OK')"
 ```
 
+### gtk4-layer-shell (build from source)
+```bash
+sudo apt install libgtk-layer-shell-dev gobject-introspection libgirepository1.0-dev
+cd /tmp
+git clone https://github.com/wmww/gtk4-layer-shell.git
+cd gtk4-layer-shell
+meson setup build -Dvapi=false
+ninja -C build
+sudo ninja -C build install
+sudo ldconfig
+sudo ln -s /usr/local/lib/x86_64-linux-gnu/girepository-1.0/Gtk4LayerShell-1.0.typelib /usr/lib/x86_64-linux-gnu/girepository-1.0/
+```
+
 ## Project Structure
 ```
 recall-board/
