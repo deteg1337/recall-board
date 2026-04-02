@@ -8,15 +8,18 @@ class ClipboardManager:
         self.store = history_store
         self.last_content = ""
         self.timer_id = None
+        self.on_change_callback = None
 
     def start(self):
-        # Check clipboard every 500ms
         self.timer_id = GLib.timeout_add(500, self._poll_clipboard)
 
     def stop(self):
         if self.timer_id is not None:
             GLib.source_remove(self.timer_id)
             self.timer_id = None
+
+    def set_on_change(self, callback):
+        self.on_change_callback = callback
 
     def _poll_clipboard(self):
         try:
@@ -33,10 +36,12 @@ class ClipboardManager:
                 self.last_content = content
                 self.store.add(content)
 
+                if self.on_change_callback:
+                    self.on_change_callback()
+
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-        # Return True to keep the timer running
         return True
 
     def set_clipboard(self, content):

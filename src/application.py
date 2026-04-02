@@ -17,12 +17,12 @@ class RecallBoardApplication(Adw.Application):
     def do_activate(self):
         window = self.props.active_window
         if not window:
-            # First launch — initialize everything
             self.store = HistoryStore()
             self.clipboard_manager = ClipboardManager(self.store)
             self.clipboard_manager.start()
 
             window = RecallBoardWindow(application=self)
+            self.clipboard_manager.set_on_change(window.refresh_list)
 
         window.refresh_list()
         window.present()
