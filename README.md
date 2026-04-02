@@ -1,46 +1,64 @@
 # Recall Board
 
-A clipboard history manager for GNOME/Wayland. Press Super+V to browse and re-use previous clipboard entries.
+A clipboard history manager for GNOME/Wayland. Press **Super+V** to open a popup with your clipboard history — click any entry to copy it back.
 
-## Development Setup
+## Features
 
-### System Dependencies (Ubuntu)
+- Clipboard history stored persistently in SQLite
+- Wayland-native via `wl-paste` / `wl-copy`
+- GTK4 + libadwaita popup (follows GNOME HIG)
+- Global shortcut (Super+V) auto-registered via GNOME Settings
+- Daemon mode — runs silently in the background, activated via D-Bus
+- Escape or focus-loss closes the popup
+- Deduplication: re-copied entries move to the top
+
+## Requirements
+
+- Ubuntu 24.04 LTS (GNOME + Wayland session)
+- Python 3.12+
+- GTK4, libadwaita, wl-clipboard
+
+## Setup
+
 ```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libadwaita-1-dev wl-clipboard meson ninja-build gettext git
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 wl-clipboard
 ```
 
-### Verify Installation
+Verify:
 ```bash
 python3 -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Adw', '1'); from gi.repository import Gtk, Adw; print('GTK', Gtk.get_major_version(), '- OK')"
 ```
 
-### gtk4-layer-shell (build from source)
+## How to Run
+
 ```bash
-sudo apt install libgtk-layer-shell-dev gobject-introspection libgirepository1.0-dev
-cd /tmp
-git clone https://github.com/wmww/gtk4-layer-shell.git
-cd gtk4-layer-shell
-meson setup build -Dvapi=false
-ninja -C build
-sudo ninja -C build install
-sudo ldconfig
-sudo ln -s /usr/local/lib/x86_64-linux-gnu/girepository-1.0/Gtk4LayerShell-1.0.typelib /usr/lib/x86_64-linux-gnu/girepository-1.0/
+python3 src/main.py
 ```
 
-## Project Structure
+The app starts as a background daemon. Press **Super+V** to open the popup. The Super+V shortcut is registered automatically in GNOME Settings on first launch.
+
+## How to Test D-Bus Activation
+
+```bash
+gdbus call --session \
+  --dest com.github.dennis.RecallBoard \
+  --object-path /com/github/dennis/RecallBoard \
+  --method org.freedesktop.Application.ActivateAction \
+  'show' '[]' '{}'
 ```
-recall-board/
-|--- src/
-|   |--- main.py                # App source code
-|   |--- application.py         # Entry point
-|   |--- window.py              # Main popup window
-|   |--- clipboard_manager.py   # Wayland clipboard listener
-|   |--- history_store.py       # SQLite storage backend
-|   |--- keybinding.py          # Global shortcut registration
-|--- data/      # Desktop files, icons, schemas
-|--- tests/     # Unit tests
-|--- flatpak    # Flatpak build manifest
-```
+
+## Architecture
+
+The app runs as a daemon (`self.hold()` in `do_startup`). No window is shown on startup. Super+V triggers `org.freedesktop.Application.ActivateAction 'show'` via D-Bus, which calls `_on_show()` and creates a fresh window.
+
+| File | Role |
+|------|------|
+| `src/main.py` | Entry point — sets up GI version requirements, creates and runs the app |
+| `src/application.py` | `RecallBoardApplication` — daemon lifecycle, holds store and clipboard manager |
+| `src/window.py` | `RecallBoardWindow` — popup UI, list, Escape/focus-dismiss |
+| `src/clipboard_manager.py` | Polls `wl-paste` every 500ms, writes new entries, notifies window |
+| `src/history_store.py` | SQLite at `~/.local/share/recall-board/history.db`, deduplication |
+| `src/keybinding.py` | Registers/unregisters Super+V as GNOME custom keybinding via gsettings |
 
 ## License
 
@@ -48,8 +66,7 @@ GPL-3.0-or-later
 
 ## Resources
 
-- [GTK4 Python Tutorial](https://amolenaar.pages.gitlab.gnome.org/pygobject-docs/)
+- [PyGObject Documentation](https://amolenaar.pages.gitlab.gnome.org/pygobject-docs/)
 - [GTK4 API Reference](https://docs.gtk.org/gtk4/)
 - [libadwaita API Reference](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/)
-- [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
 - [GNOME Developer Documentation](https://developer.gnome.org/)
