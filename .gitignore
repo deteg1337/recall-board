@@ -1,0 +1,19 @@
+### Python ### (used language)
+# python bytecode
+__pycache__/
+# .pyc = compiled bytecode || .pyo = optimized bytecode || .pyd = python dlls on windows
+*.py[cod]
+# python package metadata folder after running pip install -e
+*.egg-info/
+# package folder when providing files like .tar.gz or .whl
+dist/
+# build folder when building packages
+build/
+
+### Meson ### (used Build-System)
+# compiled files, configs etc.
+builddir/
+_build/
+
+# IDE
+.vscode/
