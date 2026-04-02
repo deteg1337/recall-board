@@ -1,4 +1,4 @@
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 
 class RecallBoardWindow(Adw.ApplicationWindow):
@@ -7,6 +7,16 @@ class RecallBoardWindow(Adw.ApplicationWindow):
 
         self.set_title("Recall Board")
         self.set_default_size(400, 500)
+
+        self._focus_loss_timer = None
+
+        # Close on Escape key
+        esc_controller = Gtk.EventControllerKey()
+        esc_controller.connect("key-pressed", self._on_key_pressed)
+        self.add_controller(esc_controller)
+
+        # Close when losing focus — with delay to handle Super key release
+        self.connect("notify::is-active", self._on_focus_changed)
 
         # Header bar
         header = Adw.HeaderBar()
@@ -55,7 +65,7 @@ class RecallBoardWindow(Adw.ApplicationWindow):
     def _create_row(self, entry):
         label = Gtk.Label(label=entry["content"])
         label.set_xalign(0)
-        label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
+        label.set_ellipsize(3)
         label.set_max_width_chars(50)
         label.set_single_line_mode(True)
 
@@ -78,4 +88,26 @@ class RecallBoardWindow(Adw.ApplicationWindow):
         content = row.entry_data["content"]
         app = self.get_application()
         app.clipboard_manager.set_clipboard(content)
-        self.close()
+        self.destroy()
+
+    def _on_key_pressed(self, controller, keyval, keycode, state):
+        if keyval == Gdk.KEY_Escape:
+            self.destroy()
+            return True
+        return False
+
+    def _on_focus_changed(self, window, pspec):
+        if not self.is_active():
+            # Delay closing — Super key release causes a brief focus loss
+            self._focus_loss_timer = GLib.timeout_add(200, self._close_if_unfocused)
+        else:
+            # Got focus back — cancel pending close
+            if self._focus_loss_timer is not None:
+                GLib.source_remove(self._focus_loss_timer)
+                self._focus_loss_timer = None
+
+    def _close_if_unfocused(self):
+        self._focus_loss_timer = None
+        if not self.is_active():
+            self.destroy()
+        return False
