@@ -1,5 +1,6 @@
 from gi.repository import Adw, Gio
 
+from autostart import register_autostart
 from clipboard_manager import ClipboardManager
 from history_store import HistoryStore
 from keybinding import register_shortcut
@@ -27,6 +28,7 @@ class RecallBoardApplication(Adw.Application):
         self.add_action(show_action)
 
         register_shortcut()
+        register_autostart()
         self.hold()
 
     def do_activate(self):
