@@ -34,11 +34,9 @@ class RecallBoardWindow(Adw.ApplicationWindow):
         self.set_content(content)
 
     def refresh_list(self):
-        # Remove all existing rows
         while row := self.list_box.get_row_at_index(0):
             self.list_box.remove(row)
 
-        # Add entries from store
         store = self.get_application().store
         entries = store.get_all()
 
@@ -59,10 +57,15 @@ class RecallBoardWindow(Adw.ApplicationWindow):
         label.set_xalign(0)
         label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
         label.set_max_width_chars(50)
-        label.set_lines(2)
-        label.set_wrap(True)
+        label.set_single_line_mode(True)
+
+        label.set_margin_top(8)
+        label.set_margin_bottom(8)
+        label.set_margin_start(12)
+        label.set_margin_end(12)
 
         row = Gtk.ListBoxRow()
+        row.set_size_request(-1, 44)
         row.set_child(label)
         row.entry_data = entry
 
