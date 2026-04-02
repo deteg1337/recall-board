@@ -32,4 +32,11 @@ recall-board/
 ## License
 
 GPL-3.0-or-later
-EOF
+
+## Resources
+
+- [GTK4 Python Tutorial](https://amolenaar.pages.gitlab.gnome.org/pygobject-docs/)
+- [GTK4 API Reference](https://docs.gtk.org/gtk4/)
+- [libadwaita API Reference](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/)
+- [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
+- [GNOME Developer Documentation](https://developer.gnome.org/)
