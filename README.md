@@ -8,6 +8,7 @@ A clipboard history manager for GNOME/Wayland. Press **Super+V** to open a popup
 - Wayland-native via `wl-paste` / `wl-copy`
 - GTK4 + libadwaita popup (follows GNOME HIG)
 - Global shortcut (Super+V) auto-registered via GNOME Settings
+- Autostart on login via XDG autostart (registered on first launch)
 - Daemon mode — runs silently in the background, activated via D-Bus
 - Escape or focus-loss closes the popup
 - Deduplication: re-copied entries move to the top
@@ -59,6 +60,7 @@ The app runs as a daemon (`self.hold()` in `do_startup`). No window is shown on 
 | `src/clipboard_manager.py` | Polls `wl-paste` every 500ms, writes new entries, notifies window |
 | `src/history_store.py` | SQLite at `~/.local/share/recall-board/history.db`, deduplication |
 | `src/keybinding.py` | Registers/unregisters Super+V as GNOME custom keybinding via gsettings |
+| `src/autostart.py` | Writes/removes XDG autostart `.desktop` file in `~/.config/autostart/` |
 
 ## License
 
