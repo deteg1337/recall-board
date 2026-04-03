@@ -1,5 +1,7 @@
 # Recall Board
 
+[![CI](https://github.com/deteg1337/recall-board/actions/workflows/ci.yml/badge.svg)](https://github.com/deteg1337/recall-board/actions/workflows/ci.yml)
+
 A clipboard history manager for GNOME/Wayland. Press **Super+V** to open a popup with your clipboard history — click any entry to copy it back.
 
 ## Features
