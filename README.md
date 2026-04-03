@@ -30,6 +30,13 @@ Verify:
 python3 -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Adw', '1'); from gi.repository import Gtk, Adw; print('GTK', Gtk.get_major_version(), '- OK')"
 ```
 
+## How to Test
+
+```bash
+sudo apt install python3-pytest
+python3 -m pytest tests/ -v
+```
+
 ## How to Run
 
 ```bash
