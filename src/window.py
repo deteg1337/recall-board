@@ -1,4 +1,15 @@
+import subprocess
+
 from gi.repository import Adw, Gdk, GLib, Gtk
+
+
+def _paste_from_clipboard():
+    """Simulate Ctrl+V after the popup has closed and focus has returned."""
+    try:
+        subprocess.Popen(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"])
+    except FileNotFoundError:
+        pass  # wtype not available — clipboard is already set, user can paste manually
+    return False  # do not repeat
 
 
 class RecallBoardWindow(Adw.ApplicationWindow):
@@ -10,7 +21,7 @@ class RecallBoardWindow(Adw.ApplicationWindow):
 
         self._focus_loss_timer = None
 
-        # Close on Escape key
+        # Close on Escape, navigate to list on Down arrow
         esc_controller = Gtk.EventControllerKey()
         esc_controller.connect("key-pressed", self._on_key_pressed)
         self.add_controller(esc_controller)
@@ -89,11 +100,17 @@ class RecallBoardWindow(Adw.ApplicationWindow):
         app = self.get_application()
         app.clipboard_manager.set_clipboard(content)
         self.destroy()
+        GLib.timeout_add(150, _paste_from_clipboard)
 
     def _on_key_pressed(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
             self.destroy()
             return True
+        if keyval == Gdk.KEY_Down:
+            first_row = self.list_box.get_row_at_index(0)
+            if first_row is not None and hasattr(first_row, "entry_data"):
+                first_row.grab_focus()
+                return True
         return False
 
     def _on_focus_changed(self, window, pspec):
