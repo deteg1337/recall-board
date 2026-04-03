@@ -30,9 +30,6 @@ from gi.repository import Gtk, Adw
 command -v wl-copy >/dev/null \
     || error "wl-clipboard not found. Run: sudo apt install wl-clipboard"
 
-command -v wtype >/dev/null \
-    || error "wtype not found. Run: sudo apt install wtype"
-
 # ── Install ────────────────────────────────────────────────────────────────────
 info "Installing to $INSTALL_DIR ..."
 

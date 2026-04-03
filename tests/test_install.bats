@@ -15,9 +15,6 @@ setup() {
     printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_bin/wl-copy"
     chmod +x "$fake_bin/wl-paste" "$fake_bin/wl-copy"
 
-    # Fake wtype
-    printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_bin/wtype"
-    chmod +x "$fake_bin/wtype"
 
     # Fake python3 that passes gi/GTK/Adw import checks
     cat > "$fake_bin/python3" <<'EOF'
