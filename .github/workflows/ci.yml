@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Python tests
     runs-on: ubuntu-latest
 
     steps:
@@ -24,4 +25,24 @@ jobs:
             xvfb
 
       - name: Run tests
-        run: xvfb-run python3 -m pytest tests/ -v
+        run: xvfb-run python3 -m pytest tests/ -v --ignore=tests/test_install.bats
+
+  install:
+    name: Install/uninstall scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            bats \
+            python3-gi \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            wl-clipboard
+
+      - name: Run install/uninstall tests
+        run: bats tests/test_install.bats -t
