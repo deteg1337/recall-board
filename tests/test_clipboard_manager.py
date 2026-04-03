@@ -6,141 +6,164 @@ from clipboard_manager import ClipboardManager
 
 
 @pytest.fixture
-def manager(store):
-    return ClipboardManager(store)
+def mock_clipboard():
+    clipboard = MagicMock()
+    display = MagicMock()
+    display.get_clipboard.return_value = clipboard
+    return clipboard, display
 
 
-def _make_run_result(stdout="", returncode=0):
-    result = MagicMock()
-    result.stdout = stdout
-    result.returncode = returncode
-    return result
+@pytest.fixture
+def manager(store, mock_clipboard):
+    clipboard, display = mock_clipboard
+    with patch("clipboard_manager.Gdk.Display.get_default", return_value=display):
+        m = ClipboardManager(store)
+        m.start()
+    return m, clipboard
 
 
-def test_poll_new_content_is_stored(manager, store):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("hello")
-        manager._poll_clipboard()
+# ── start / stop ───────────────────────────────────────────────────────────────
+
+def test_start_connects_to_changed_signal(store, mock_clipboard):
+    clipboard, display = mock_clipboard
+    with patch("clipboard_manager.Gdk.Display.get_default", return_value=display):
+        m = ClipboardManager(store)
+        m.start()
+    clipboard.connect.assert_called_once_with("changed", m._on_clipboard_changed)
+
+
+def test_start_without_display_is_safe(store):
+    with patch("clipboard_manager.Gdk.Display.get_default", return_value=None):
+        m = ClipboardManager(store)
+        m.start()  # must not raise
+    assert m._clipboard is None
+
+
+def test_stop_disconnects_signal(manager):
+    m, clipboard = manager
+    handler_id = m._handler_id  # save before stop() clears it
+    m.stop()
+    clipboard.disconnect.assert_called_once_with(handler_id)
+
+
+def test_stop_clears_handler_id(manager):
+    m, clipboard = manager
+    m.stop()
+    assert m._handler_id is None
+
+
+def test_stop_when_not_started_is_safe(store):
+    m = ClipboardManager(store)
+    m.stop()  # never started — must not raise
+
+
+# ── _on_clipboard_changed ──────────────────────────────────────────────────────
+
+def test_on_clipboard_changed_requests_text_async(manager):
+    m, clipboard = manager
+    m._on_clipboard_changed(clipboard)
+    clipboard.read_text_async.assert_called_once_with(None, m._on_text_received)
+
+
+# ── _on_text_received ──────────────────────────────────────────────────────────
+
+def test_new_content_is_stored(manager, store):
+    m, clipboard = manager
+    clipboard.read_text_finish.return_value = "hello"
+    m._on_text_received(clipboard, MagicMock())
 
     entries = store.get_all()
     assert len(entries) == 1
     assert entries[0]["content"] == "hello"
 
 
-def test_poll_new_content_triggers_callback(manager):
+def test_new_content_triggers_callback(manager):
+    m, clipboard = manager
     callback = MagicMock()
-    manager.set_on_change(callback)
+    m.set_on_change(callback)
 
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("hello")
-        manager._poll_clipboard()
+    clipboard.read_text_finish.return_value = "hello"
+    m._on_text_received(clipboard, MagicMock())
 
     callback.assert_called_once()
 
 
-def test_poll_same_content_is_ignored(manager, store):
-    manager.last_content = "same"
-
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("same")
-        manager._poll_clipboard()
+def test_same_content_is_ignored(manager, store):
+    m, clipboard = manager
+    m._last_content = "same"
+    clipboard.read_text_finish.return_value = "same"
+    m._on_text_received(clipboard, MagicMock())
 
     assert store.get_all() == []
 
 
-def test_poll_same_content_does_not_trigger_callback(manager):
-    manager.last_content = "same"
+def test_same_content_does_not_trigger_callback(manager):
+    m, clipboard = manager
+    m._last_content = "same"
     callback = MagicMock()
-    manager.set_on_change(callback)
+    m.set_on_change(callback)
 
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("same")
-        manager._poll_clipboard()
+    clipboard.read_text_finish.return_value = "same"
+    m._on_text_received(clipboard, MagicMock())
 
     callback.assert_not_called()
 
 
-def test_poll_empty_content_is_ignored(manager, store):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("")
-        manager._poll_clipboard()
+def test_empty_content_is_ignored(manager, store):
+    m, clipboard = manager
+    clipboard.read_text_finish.return_value = ""
+    m._on_text_received(clipboard, MagicMock())
 
     assert store.get_all() == []
 
 
-def test_poll_nonzero_returncode_is_ignored(manager, store):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("something", returncode=1)
-        manager._poll_clipboard()
+def test_none_content_is_ignored(manager, store):
+    m, clipboard = manager
+    clipboard.read_text_finish.return_value = None
+    m._on_text_received(clipboard, MagicMock())
 
     assert store.get_all() == []
 
 
-def test_poll_timeout_is_handled(manager):
-    import subprocess
-
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd="wl-paste", timeout=1)
-        manager._poll_clipboard()  # must not raise
+def test_read_exception_is_handled(manager):
+    m, clipboard = manager
+    clipboard.read_text_finish.side_effect = Exception("GLib error")
+    m._on_text_received(clipboard, MagicMock())  # must not raise
 
 
-def test_poll_missing_wl_paste_is_handled(manager):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.side_effect = FileNotFoundError
-        manager._poll_clipboard()  # must not raise
+def test_last_content_is_updated(manager):
+    m, clipboard = manager
+    clipboard.read_text_finish.return_value = "new content"
+    m._on_text_received(clipboard, MagicMock())
+
+    assert m._last_content == "new content"
 
 
-def test_poll_returns_true_to_keep_timer(manager):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("")
-        result = manager._poll_clipboard()
-
-    assert result is True
-
-
-def test_poll_updates_last_content(manager):
-    with patch("clipboard_manager.subprocess.run") as mock_run:
-        mock_run.return_value = _make_run_result("new content")
-        manager._poll_clipboard()
-
-    assert manager.last_content == "new content"
-
+# ── set_clipboard ──────────────────────────────────────────────────────────────
 
 def test_set_clipboard_calls_wl_copy(manager):
+    m, _ = manager
     mock_process = MagicMock()
     with patch("clipboard_manager.subprocess.Popen") as mock_popen:
         mock_popen.return_value = mock_process
-        manager.set_clipboard("hello")
+        m.set_clipboard("hello")
 
-    mock_popen.assert_called_once()
-    args = mock_popen.call_args[0][0]
-    assert args == ["wl-copy"]
+    mock_popen.assert_called_once_with(["wl-copy"], stdin=-1)
     mock_process.communicate.assert_called_once_with(input=b"hello")
 
 
 def test_set_clipboard_updates_last_content(manager):
+    m, _ = manager
     mock_process = MagicMock()
     with patch("clipboard_manager.subprocess.Popen") as mock_popen:
         mock_popen.return_value = mock_process
-        manager.set_clipboard("copied")
+        m.set_clipboard("copied")
 
-    assert manager.last_content == "copied"
+    assert m._last_content == "copied"
 
 
 def test_set_clipboard_missing_wl_copy_is_handled(manager):
+    m, _ = manager
     with patch("clipboard_manager.subprocess.Popen") as mock_popen:
         mock_popen.side_effect = FileNotFoundError
-        manager.set_clipboard("hello")  # must not raise
-
-
-def test_stop_removes_timer(manager):
-    with patch("clipboard_manager.GLib.source_remove") as mock_remove:
-        manager.timer_id = 42
-        manager.stop()
-
-    mock_remove.assert_called_once_with(42)
-    assert manager.timer_id is None
-
-
-def test_stop_when_not_started_is_safe(manager):
-    manager.stop()  # timer_id is None — must not raise
+        m.set_clipboard("hello")  # must not raise
