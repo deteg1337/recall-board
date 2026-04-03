@@ -83,15 +83,17 @@ def test_refresh_list_empty_does_not_schedule_focus(window):
     mock_idle.assert_not_called()
 
 
-def test_focus_first_row_grabs_focus(window, app_with_store):
+def test_focus_first_row_selects_and_grabs_focus(window, app_with_store):
     app_with_store.store.add("entry")
     window.refresh_list()
     _pump_events()
 
     first_row = window.list_box.get_row_at_index(0)
     first_row.grab_focus = MagicMock()
+    window.list_box.select_row = MagicMock()
     window._focus_first_row()
 
+    window.list_box.select_row.assert_called_once_with(first_row)
     first_row.grab_focus.assert_called_once()
 
 

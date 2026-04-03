@@ -23,7 +23,7 @@ class RecallBoardWindow(Adw.ApplicationWindow):
 
         # Scrollable list area
         self.list_box = Gtk.ListBox()
-        self.list_box.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.list_box.add_css_class("boxed-list")
         self.list_box.connect("row-activated", self._on_row_activated)
 
@@ -68,6 +68,7 @@ class RecallBoardWindow(Adw.ApplicationWindow):
     def _focus_first_row(self):
         first_row = self.list_box.get_row_at_index(0)
         if first_row is not None and hasattr(first_row, "entry_data"):
+            self.list_box.select_row(first_row)
             first_row.grab_focus()
         return False
 
