@@ -12,6 +12,8 @@ A clipboard history manager for GNOME/Wayland. Press **Super+V** to open a popup
 - Global shortcut (Super+V) auto-registered via GNOME Settings
 - Autostart on login via XDG autostart (registered on first launch)
 - Daemon mode — runs silently in the background, activated via D-Bus
+- Click or Enter on an entry pastes it directly into the active window
+- Arrow key navigation in the entry list
 - Escape or focus-loss closes the popup
 - Deduplication: re-copied entries move to the top
 
@@ -36,12 +38,12 @@ To uninstall:
 
 - Ubuntu 24.04 LTS (GNOME + Wayland session)
 - Python 3.12+
-- GTK4, libadwaita, wl-clipboard
+- GTK4, libadwaita, wl-clipboard, wtype
 
 ## Setup
 
 ```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 wl-clipboard
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 wl-clipboard wtype
 ```
 
 Verify:
