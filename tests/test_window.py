@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from gi.repository import Gdk, GLib
 
-from window import RecallBoardWindow
+from window import RecallBoardWindow, _paste_from_clipboard
 
 
 def _pump_events():
@@ -94,8 +94,9 @@ def test_row_activation_calls_set_clipboard(window, app_with_store):
     _pump_events()
 
     window.destroy = MagicMock()
-    row = window.list_box.get_row_at_index(0)
-    window._on_row_activated(window.list_box, row)
+    with patch("window.GLib.timeout_add"):
+        row = window.list_box.get_row_at_index(0)
+        window._on_row_activated(window.list_box, row)
 
     app_with_store.clipboard_manager.set_clipboard.assert_called_once_with("copy me")
 
@@ -106,10 +107,24 @@ def test_row_activation_closes_window(window, app_with_store):
     _pump_events()
 
     window.destroy = MagicMock()
-    row = window.list_box.get_row_at_index(0)
-    window._on_row_activated(window.list_box, row)
+    with patch("window.GLib.timeout_add"):
+        row = window.list_box.get_row_at_index(0)
+        window._on_row_activated(window.list_box, row)
 
     window.destroy.assert_called_once()
+
+
+def test_row_activation_schedules_paste(window, app_with_store):
+    app_with_store.store.add("copy me")
+    window.refresh_list()
+    _pump_events()
+
+    window.destroy = MagicMock()
+    with patch("window.GLib.timeout_add") as mock_add:
+        row = window.list_box.get_row_at_index(0)
+        window._on_row_activated(window.list_box, row)
+
+    mock_add.assert_called_once_with(150, _paste_from_clipboard)
 
 
 def test_row_activation_on_empty_state_row_is_safe(window):
@@ -133,6 +148,48 @@ def test_other_key_does_not_close_window(window):
     result = window._on_key_pressed(None, Gdk.KEY_a, 0, 0)
 
     window.destroy.assert_not_called()
+    assert result is False
+
+
+def test_down_key_focuses_first_row(window, app_with_store):
+    app_with_store.store.add("entry")
+    window.refresh_list()
+    _pump_events()
+
+    first_row = window.list_box.get_row_at_index(0)
+    first_row.grab_focus = MagicMock()
+
+    result = window._on_key_pressed(None, Gdk.KEY_Down, 0, 0)
+
+    first_row.grab_focus.assert_called_once()
+    assert result is True
+
+
+def test_down_key_on_empty_list_is_safe(window):
+    window.refresh_list()
+    _pump_events()
+
+    # First row has no entry_data (placeholder) — should not crash or grab focus
+    result = window._on_key_pressed(None, Gdk.KEY_Down, 0, 0)
+    assert result is False
+
+
+def test_paste_from_clipboard_calls_wtype():
+    with patch("window.subprocess.Popen") as mock_popen:
+        _paste_from_clipboard()
+
+    mock_popen.assert_called_once_with(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"])
+
+
+def test_paste_from_clipboard_missing_wtype_is_safe():
+    with patch("window.subprocess.Popen") as mock_popen:
+        mock_popen.side_effect = FileNotFoundError
+        _paste_from_clipboard()  # must not raise
+
+
+def test_paste_from_clipboard_returns_false():
+    with patch("window.subprocess.Popen"):
+        result = _paste_from_clipboard()
     assert result is False
 
 
