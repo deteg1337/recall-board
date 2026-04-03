@@ -15,6 +15,23 @@ A clipboard history manager for GNOME/Wayland. Press **Super+V** to open a popup
 - Escape or focus-loss closes the popup
 - Deduplication: re-copied entries move to the top
 
+## Installation
+
+```bash
+git clone https://github.com/deteg1337/recall-board.git
+cd recall-board
+./install.sh
+```
+
+The script checks all dependencies, installs the app to `~/.local/`, registers Super+V, and sets up autostart. Press **Super+V** to open Recall Board after installation.
+
+To uninstall:
+```bash
+./uninstall.sh
+```
+
+---
+
 ## Requirements
 
 - Ubuntu 24.04 LTS (GNOME + Wayland session)
