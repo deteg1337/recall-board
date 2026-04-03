@@ -42,7 +42,8 @@ jobs:
             python3-gi \
             gir1.2-gtk-4.0 \
             gir1.2-adw-1 \
-            wl-clipboard
+            wl-clipboard \
+            wtype
 
       - name: Run install/uninstall tests
         run: bats tests/test_install.bats -t

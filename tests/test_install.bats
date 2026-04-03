@@ -10,9 +10,14 @@ setup() {
     local fake_bin="$BATS_TEST_TMPDIR/fake-bin"
     mkdir -p "$fake_bin"
 
-    # Fake wl-paste
+    # Fake wl-paste and wl-copy
     printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_bin/wl-paste"
-    chmod +x "$fake_bin/wl-paste"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_bin/wl-copy"
+    chmod +x "$fake_bin/wl-paste" "$fake_bin/wl-copy"
+
+    # Fake wtype
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_bin/wtype"
+    chmod +x "$fake_bin/wtype"
 
     # Fake python3 that passes gi/GTK/Adw import checks
     cat > "$fake_bin/python3" <<'EOF'
