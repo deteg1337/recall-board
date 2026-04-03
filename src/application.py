@@ -37,7 +37,7 @@ class RecallBoardApplication(Adw.Application):
         pass
 
     def _on_show(self, action, param):
-        old = self.props.active_window
+        old = self.get_active_window()
         if old:
             old.destroy()
 

@@ -1,0 +1,13 @@
+[project]
+name = "recall-board"
+version = "0.1.0"
+description = "Clipboard history manager for GNOME/Wayland"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.12"
+
+[project.urls]
+Repository = "https://github.com/deteg1337/recall-board"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

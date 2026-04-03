@@ -6,10 +6,12 @@ from gi.repository import GLib
 
 
 class HistoryStore:
-    def __init__(self):
-        data_dir = Path(GLib.get_user_data_dir()) / "recall-board"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        self.db_path = data_dir / "history.db"
+    def __init__(self, db_path=None):
+        if db_path is None:
+            data_dir = Path(GLib.get_user_data_dir()) / "recall-board"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            db_path = data_dir / "history.db"
+        self.db_path = db_path
         self.connection = sqlite3.connect(str(self.db_path))
         self._create_table()
 
